@@ -1,1 +1,69 @@
-# stockmeta-generator
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StockMeta - AI Metadata Generator</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>StockMeta Generator</h1>
+            <p>Upload files. Get SEO metadata. Download.</p>
+            <p class="subtitle">Works with: Adobe Stock, Shutterstock, Freepik, iStock, Dreamstime, 123RF</p>
+        </header>
+
+        <div class="upload-section">
+            <div class="drop-zone" id="dropZone">
+                <div class="drop-zone-content">
+                    <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="17 8 12 3 7 8"></polyline>
+                        <line x1="12" y1="3" x2="12" y2="15"></line>
+                    </svg>
+                    <p class="drop-text">Drop files here or click to browse</p>
+                    <p class="drop-subtext">SVG, EPS, AI, JPG, PNG, GIF, WEBP, ZIP, PDF, PSD, CDR</p>
+                    <input type="file" id="fileInput" multiple accept=".svg,.eps,.ai,.jpg,.jpeg,.png,.gif,.webp,.zip,.pdf,.psd,.cdr">
+                </div>
+            </div>
+        </div>
+
+        <div class="api-section" id="apiSection" style="display: none;">
+            <div class="api-box">
+                <label>API Key (optional - for better AI results)</label>
+                <input type="password" id="apiKey" placeholder="Paste free Gemini or HuggingFace key here">
+                <small>Get free key from <a href="https://aistudio.google.com/app/apikey" target="_blank">Google AI Studio</a> or <a href="https://huggingface.co/settings/tokens" target="_blank">HuggingFace</a></small>
+            </div>
+        </div>
+
+        <div class="progress-section" id="progressSection" style="display: none;">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <p id="progressText">Ready</p>
+        </div>
+
+        <div class="results-section" id="resultsSection" style="display: none;">
+            <div class="results-header">
+                <h2>Generated Metadata</h2>
+                <button class="btn btn-primary" id="downloadBtn" onclick="downloadAll()" style="display: none;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 6px;">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7 10 12 15 17 10"></polyline>
+                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                    Download All (CSV + TXT)
+                </button>
+            </div>
+            <div class="results-grid" id="resultsGrid"></div>
+        </div>
+
+        <div class="log-section" id="logSection" style="display: none;">
+            <div class="log-content" id="logContent"></div>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+</body>
+</html>
