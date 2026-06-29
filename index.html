@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StockMeta - AI Metadata Generator</title>
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --secondary: #10b981;
+            --bg: #0f172a;
+            --surface: #1e293b;
+            --surface-light: #334155;
+            --text: #f1f5f9;
+            --text-muted: #94a3b8;
+            --border: #475569;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        header {
+            text-align: center;
+            margin-bottom: 2.5rem;
+        }
+        header h1 {
+            font-size: 2.8rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+        header p { color: var(--text-muted); font-size: 1.1rem; }
+        .subtitle { font-size: 0.85rem !important; margin-top: 0.5rem; opacity: 0.7; }
+        .drop-zone {
+            border: 2px dashed var(--border);
+            border-radius: 16px;
+            padding: 3rem 2rem;
+            text-align: center;
+            transition: all 0.3s;
+            cursor: pointer;
+            background: var(--surface);
+            position: relative;
+        }
+        .drop-zone:hover, .drop-zone.dragover {
+            border-color: var(--primary);
+            background: rgba(99, 102, 241, 0.05);
+        }
+        .upload-icon { width: 56px; height: 56px; color: var(--primary); margin-bottom: 1rem; }
+        .drop-text { font-size: 1.2rem; font-weight: 600; margin-bottom: 0.5rem; }
+        .drop-subtext { color: var(--text-muted); font-size: 0.9rem; }
+        #fileInput { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+        .api-section { margin-top: 1.5rem; }
+        .api-box {
+            background: var(--surface);
+            border-radius: 12px;
+            padding: 1.25rem;
+            border: 1px solid var(--border);
+        }
+        .api-box label { display: block; font-weight: 600; margin-bottom: 0.5rem; font-size: 0.95rem; }
+        .api-box input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: var(--bg);
+            color: var(--text);
+            font-size: 0.95rem;
+            margin-bottom: 0.5rem;
+        }
+        .api-box input:focus { outline: none; border-color: var(--primary); }
+        .api-box small { color: var(--text-muted); font-size: 0.8rem; }
+        .api-box a { color: var(--primary); text-decoration: none; }
+        .progress-section {
+            margin-top: 1.5rem;
+            background: var(--surface);
+            border-radius: 12px;
+            padding: 1.25rem;
+            border: 1px solid var(--border);
+            display: none;
+        }
+        .progress-bar {
+            height: 8px;
+            background: var(--surface-light);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 0.75rem;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            width: 0%;
+            transition: width 0.4s ease;
+        }
+        #progressText { color: var(--text-muted); font-size: 0.9rem; text-align: center; }
+        .results-section {
+            margin-top: 1.5rem;
+            background: var(--surface);
+            border-radius: 12px;
+            padding: 1.5rem;
+            border: 1px solid var(--border);
+            display: none;
+        }
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        .results-header h2 { color: var(--primary); font-size: 1.4rem; }
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.95rem;
+            display: inline-flex;
+            align-items: center;
+        }
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+        .btn-primary:hover { background: var(--primary-dark); transform: translateY(-1px); }
+        .results-grid { display: grid; gap: 1rem; }
+        .result-card {
+            background: var(--bg);
+            border-radius: 10px;
+            padding: 1.25rem;
+            border: 1px solid var(--border);
+        }
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 1rem;
+        }
+        .result-title { font-weight: 700; word-break: break-all; }
+        .result-status {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.6rem;
+            border-radius: 12px;
+            font-weight: 600;
+        }
+        .status-done { background: rgba(16, 185, 129, 0.2); color: var(--secondary); }
+        .status-fail { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+        .meta-field { margin-bottom: 0.75rem; }
+        .meta-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.25rem;
+        }
+        .meta-value {
+            background: var(--surface-light);
+            padding: 0.75rem;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            word-break: break-word;
+            line-height: 1.5;
+        }
+        .keywords { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+        .keyword-tag {
+            background: rgba(99, 102, 241, 0.2);
+            color: var(--primary);
+            padding: 0.2rem 0.6rem;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+        .log-section {
+            margin-top: 1.5rem;
+            background: var(--surface);
+            border-radius: 12px;
+            padding: 1rem;
+            border: 1px solid var(--border);
+            display: none;
+        }
+        .log-content {
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.8rem;
+            line-height: 1.6;
+        }
+        .log-entry { padding: 0.15rem 0; }
+        .log-done { color: var(--secondary); }
+        .log-fail { color: #ef4444; }
+        .log-info { color: var(--text-muted); }
+        @media (max-width: 768px) {
+            .container { padding: 1rem; }
+            header h1 { font-size: 2rem; }
+            .results-header { flex-direction: column; align-items: stretch; }
+            .btn { justify-content: center; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>StockMeta Generator</h1>
+            <p>Upload files. Get SEO metadata. Download.</p>
+            <p class="subtitle">Works with: Adobe Stock, Shutterstock, Freepik, iStock, Dreamstime, 123RF</p>
+        </header>
+
+        <div class="upload-section">
+            <div class="drop-zone" id="dropZone">
+                <div class="drop-zone-content">
+                    <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="17 8 12 3 7 8"></polyline>
+                        <line x1="12" y1="3" x2="12" y2="15"></line>
+                    </svg>
+                    <p class="drop-text">Drop files here or click to browse</p>
+                    <p class="drop-subtext">SVG, EPS, AI, JPG, PNG, GIF, WEBP, ZIP, PDF, PSD, CDR</p>
+                    <input type="file" id="fileInput" multiple accept=".svg,.eps,.ai,.jpg,.jpeg,.png,.gif,.webp,.zip,.pdf,.psd,.cdr">
+                </div>
+            </div>
+        </div>
+
+        <div class="api-section" id="apiSection" style="display: none;">
+            <div class="api-box">
+                <label>API Key (optional - for better AI results)</label>
+                <input type="password" id="apiKey" placeholder="Paste free Gemini key here">
+                <small>Get free key from <a href="https://aistudio.google.com/app/apikey" target="_blank">Google AI Studio</a> (sign in &rarr; Create API Key)</small>
+            </div>
+        </div>
+
+        <div class="progress-section" id="progressSection">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <p id="progressText">Ready</p>
+        </div>
+
+        <div class="results-section" id="resultsSection">
+            <div class="results-header">
+                <h2>Generated Metadata</h2>
+                <button class="btn btn-primary" id="downloadBtn" onclick="downloadAll()" style="display: none;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 6px;">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7 10 12 15 17 10"></polyline>
+                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                    Download All (CSV + TXT)
+                </button>
+            </div>
+            <div class="results-grid" id="resultsGrid"></div>
+        </div>
+
+        <div class="log-section" id="logSection">
+            <div class="log-content" id="logContent"></div>
+        </div>
+    </div>
+
+    <script>
+        class StockMetaApp {
+            constructor() {
+                this.files = [];
+                this.results = [];
+                this.processing = false;
+                this.init();
+            }
+
+            init() {
+                this.bindEvents();
+                this.log("StockMeta ready. Drop files to start.", "info");
+            }
+
+            bindEvents() {
+                const dropZone = document.getElementById("dropZone");
+                const fileInput = document.getElementById("fileInput");
+
+                dropZone.addEventListener("dragover", (e) => { e.preventDefault(); dropZone.classList.add("dragover"); });
+                dropZone.addEventListener("dragleave", () => dropZone.classList.remove("dragover"));
+                dropZone.addEventListener("drop", (e) => {
+                    e.preventDefault();
+                    dropZone.classList.remove("dragover");
+                    this.handleFiles(e.dataTransfer.files);
+                });
+                fileInput.addEventListener("change", (e) => this.handleFiles(e.target.files));
+            }
+
+            handleFiles(fileList) {
+                const validExts = ["svg","eps","ai","jpg","jpeg","png","gif","webp","zip","pdf","psd","cdr"];
+
+                Array.from(fileList).forEach(file => {
+                    const ext = file.name.split(".").pop().toLowerCase();
+                    if (validExts.includes(ext)) {
+                        this.files.push({ file: file, id: crypto.randomUUID(), status: "pending" });
+                    } else {
+                        this.log("Skipped: " + file.name + " (unsupported)", "fail");
+                    }
+                });
+
+                if (this.files.length > 0) {
+                    document.getElementById("apiSection").style.display = "block";
+                    document.getElementById("progressSection").style.display = "block";
+                    document.getElementById("resultsSection").style.display = "block";
+                    document.getElementById("logSection").style.display = "block";
+                    this.log("Added " + this.files.length + " file(s)", "done");
+                    this.processFiles();
+                }
+            }
+
+            async processFiles() {
+                if (this.processing) return;
+                this.processing = true;
+                this.results = [];
+
+                const total = this.files.length;
+                const progressFill = document.getElementById("progressFill");
+                const progressText = document.getElementById("progressText");
+                const downloadBtn = document.getElementById("downloadBtn");
+                downloadBtn.style.display = "none";
+
+                for (let i = 0; i < this.files.length; i++) {
+                    const fileObj = this.files[i];
+                    progressFill.style.width = ((i + 1) / total * 100) + "%";
+                    progressText.textContent = "Processing " + fileObj.file.name + "... (" + (i+1) + "/" + total + ")";
+                    this.log("Processing: " + fileObj.file.name, "info");
+
+                    try {
+                        const metadata = await this.generateMetadata(fileObj);
+                        fileObj.status = "done";
+                        this.results.push(Object.assign({}, metadata, { fileName: fileObj.file.name, fileId: fileObj.id }));
+                        this.log("Done: " + fileObj.file.name, "done");
+                    } catch (err) {
+                        fileObj.status = "fail";
+                        this.log("Failed: " + fileObj.file.name + " - " + err.message, "fail");
+                        const fallback = this.makeFallback(fileObj);
+                        this.results.push(fallback);
+                    }
+
+                    if (i < this.files.length - 1) await this.delay(1500);
+                }
+
+                this.processing = false;
+                progressText.textContent = "Complete! " + this.results.length + "/" + total + " done.";
+                downloadBtn.style.display = "inline-flex";
+                this.renderResults();
+            }
+
+            async generateMetadata(fileObj) {
+                const apiKey = document.getElementById("apiKey").value.trim();
+                const info = await this.getFileInfo(fileObj.file);
+
+                if (apiKey) {
+                    try {
+                        const aiResult = await this.tryAI(apiKey, info);
+                        if (aiResult) return aiResult;
+                    } catch (e) {
+                        this.log("AI failed, using local fallback", "info");
+                    }
+                }
+
+                return this.makeFallback(fileObj, info);
+            }
+
+            async getFileInfo(file) {
+                const ext = file.name.split(".").pop().toLowerCase();
+                const info = {
+                    name: file.name,
+                    ext: ext,
+                    type: this.fileType(ext),
+                    size: this.formatSize(file.size),
+                    cleanName: file.name.replace(/\.[^/.]+$/, "").replace(/[-_]/g, " ")
+                };
+
+                if (["jpg","jpeg","png","gif","webp"].includes(ext)) {
+                    try {
+                        const dims = await this.getImageDims(file);
+                        info.dims = dims;
+                    } catch (e) {}
+                }
+                return info;
+            }
+
+            getImageDims(file) {
+                return new Promise((resolve, reject) => {
+                    const img = new Image();
+                    const url = URL.createObjectURL(file);
+                    img.onload = () => { URL.revokeObjectURL(url); resolve(img.naturalWidth + "x" + img.naturalHeight); };
+                    img.onerror = () => { URL.revokeObjectURL(url); reject(); };
+                    img.src = url;
+                });
+            }
+
+            fileType(ext) {
+                const map = {
+                    svg: "Vector", eps: "Vector", ai: "Vector", cdr: "Vector",
+                    jpg: "Photo", jpeg: "Photo", png: "Image", gif: "Image", webp: "Image",
+                    zip: "Archive", pdf: "Document", psd: "Photoshop"
+                };
+                return map[ext] || "File";
+            }
+
+            formatSize(bytes) {
+                if (bytes === 0) return "0 B";
+                const k = 1024;
+                const sizes = ["B","KB","MB","GB"];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
+            }
+
+            async tryAI(apiKey, info) {
+                const prompt = "Generate stock photo metadata for: " + JSON.stringify(info.cleanName) + " (" + info.type + "). Format EXACTLY: TITLE: [catchy title under 200 chars] DESC: [detailed description under 200 words, SEO optimized] CAT: [one: Abstract,Animals,Backgrounds,Business,Celebrations,Education,Food,Health,Holidays,Icons,Illustrations,Industrial,Nature,People,Technology,Textures,Transport,Travel,Vectors,Vintage] KEYS: [50 comma-separated keywords, high search volume] STYLE: [Photographic/Vector/Illustration/3D/Watercolor/Flat/Line/Minimalist/Retro/Modern] MOOD: [Happy/Professional/Calm/Energetic/Romantic/Serious/Playful/Elegant/Futuristic] No extra text.";
+
+                try {
+                    const res = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=" + apiKey, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            contents: [{ parts: [{ text: prompt }] }],
+                            generationConfig: { maxOutputTokens: 800, temperature: 0.6 }
+                        })
+                    });
+                    if (res.ok) {
+                        const data = await res.json();
+                        const text = (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0] && data.candidates[0].content.parts[0].text) || "";
+                        if (text) return this.parseAI(text, info);
+                    }
+                } catch (e) {}
+
+                return null;
+            }
+
+            parseAI(text, info) {
+                const meta = {
+                    title: "", description: "", category: "", keywords: [],
+                    style: "", mood: "", usage: "Commercial", season: "All Seasons",
+                    fileName: info.name
+                };
+
+                const lines = text.split("\n");
+                let current = null;
+
+                for (let j = 0; j < lines.length; j++) {
+                    const t = lines[j].trim();
+                    if (!t) continue;
+
+                    if (t.indexOf("TITLE:") === 0) { meta.title = t.replace("TITLE:", "").trim(); current = "title"; }
+                    else if (t.indexOf("DESC:") === 0) { meta.description = t.replace("DESC:", "").trim(); current = "desc"; }
+                    else if (t.indexOf("CAT:") === 0) { meta.category = t.replace("CAT:", "").trim(); current = "cat"; }
+                    else if (t.indexOf("KEYS:") === 0) {
+                        const k = t.replace("KEYS:", "").trim();
+                        meta.keywords = k.split(",").map(function(x) { return x.trim(); }).filter(function(x) { return x; });
+                        current = "keys";
+                    }
+                    else if (t.indexOf("STYLE:") === 0) { meta.style = t.replace("STYLE:", "").trim(); current = "style"; }
+                    else if (t.indexOf("MOOD:") === 0) { meta.mood = t.replace("MOOD:", "").trim(); current = "mood"; }
+                    else if (current && current !== "keys") { meta[current] += " " + t; }
+                }
+
+                if (meta.keywords.length === 0) meta.keywords = this.makeKeywords(info);
+                meta.title = meta.title.substring(0, 200);
+                meta.description = meta.description.substring(0, 2000);
+                meta.keywords = meta.keywords.slice(0, 50);
+                return meta;
+            }
+
+            makeFallback(fileObj, info) {
+                const i = info || { name: fileObj.file.name, cleanName: fileObj.file.name.replace(/\.[^/.]+$/, "").replace(/[-_]/g, " "), type: "File" };
+                return {
+                    title: i.cleanName + " - Premium " + i.type + " for Stock",
+                    description: "High-quality " + i.type.toLowerCase() + " file: " + i.cleanName + ". Professional design suitable for commercial and editorial use. Clean, scalable, and ready for print or digital projects. Compatible with all major stock platforms.",
+                    category: this.guessCategory(i.cleanName),
+                    keywords: this.makeKeywords(i),
+                    style: "Professional",
+                    mood: "Neutral",
+                    usage: "Commercial",
+                    season: "All Seasons",
+                    fileName: i.name
+                };
+            }
+
+            makeKeywords(info) {
+                const words = info.cleanName.toLowerCase().split(/\s+/).filter(function(w) { return w.length > 2; });
+                const type = info.type.toLowerCase();
+                const base = ["stock", "vector", "illustration", "design", "graphic", "template", "background", "clipart", "digital", "creative", "professional", "commercial", "royalty", "high quality", "modern", "clean"];
+                const all = [];
+                const seen = {};
+                words.concat(base).concat([type]).forEach(function(w) {
+                    if (!seen[w]) { seen[w] = true; all.push(w); }
+                });
+                return all.slice(0, 50);
+            }
+
+            guessCategory(name) {
+                const n = name.toLowerCase();
+                const cats = [
+                    ["abstract", "Abstract"], ["animal", "Animals"], ["background", "Backgrounds"],
+                    ["business", "Business"], ["celebration", "Celebrations"], ["education", "Education"],
+                    ["food", "Food"], ["health", "Health"], ["holiday", "Holidays"], ["icon", "Icons"],
+                    ["nature", "Nature"], ["people", "People"], ["technology", "Technology"],
+                    ["texture", "Textures"], ["transport", "Transport"], ["travel", "Travel"],
+                    ["vintage", "Vintage"], ["pattern", "Backgrounds"], ["floral", "Nature"],
+                    ["geometric", "Abstract"], ["watercolor", "Illustrations"], ["logo", "Icons"]
+                ];
+                for (let c = 0; c < cats.length; c++) {
+                    if (n.indexOf(cats[c][0]) !== -1) return cats[c][1];
+                }
+                return "Illustrations";
+            }
+
+            renderResults() {
+                const grid = document.getElementById("resultsGrid");
+                grid.innerHTML = "";
+
+                const self = this;
+                this.results.forEach(function(r, idx) {
+                    const card = document.createElement("div");
+                    card.className = "result-card";
+                    let keywordsHtml = "";
+                    r.keywords.forEach(function(k) {
+                        keywordsHtml += "<span class=\"keyword-tag\">" + k + "</span>";
+                    });
+                    card.innerHTML = 
+                        "<div class=\"result-header\">" +
+                        "<div class=\"result-title\">" + r.fileName + "</div>" +
+                        "<div class=\"result-status status-done\">Done</div>" +
+                        "</div>" +
+                        "<div class=\"meta-field\"><div class=\"meta-label\">Title</div><div class=\"meta-value\">" + r.title + "</div></div>" +
+                        "<div class=\"meta-field\"><div class=\"meta-label\">Description</div><div class=\"meta-value\">" + r.description + "</div></div>" +
+                        "<div class=\"meta-field\"><div class=\"meta-label\">Category</div><div class=\"meta-value\">" + r.category + "</div></div>" +
+                        "<div class=\"meta-field\"><div class=\"meta-label\">Keywords (" + r.keywords.length + ")</div><div class=\"meta-value keywords\">" + keywordsHtml + "</div></div>" +
+                        "<div class=\"meta-field\"><div class=\"meta-label\">Style / Mood / Usage</div><div class=\"meta-value\">" + r.style + " | " + r.mood + " | " + r.usage + "</div></div>";
+                    grid.appendChild(card);
+                });
+            }
+
+            log(msg, type) {
+                const logContent = document.getElementById("logContent");
+                const entry = document.createElement("div");
+                entry.className = "log-entry log-" + type;
+                entry.textContent = "[" + new Date().toLocaleTimeString() + "] " + msg;
+                logContent.appendChild(entry);
+                logContent.scrollTop = logContent.scrollHeight;
+            }
+
+            delay(ms) { return new Promise(function(r) { setTimeout(r, ms); }); }
+        }
+
+        let app;
+        document.addEventListener("DOMContentLoaded", function() { app = new StockMetaApp(); });
+
+        function downloadAll() {
+            if (!app || app.results.length === 0) return;
+
+            const headers = ["File Name","Title","Description","Category","Keywords","Style","Mood","Usage"];
+            const rows = app.results.map(function(r) {
+                return [
+                    r.fileName,
+                    '"' + (r.title || "").replace(/"/g, """") + '"',
+                    '"' + (r.description || "").replace(/"/g, """") + '"',
+                    r.category,
+                    '"' + (r.keywords || []).join(", ") + '"',
+                    r.style,
+                    r.mood,
+                    r.usage
+                ];
+            });
+            const csv = [headers.join(",")].concat(rows.map(function(r) { return r.join(","); })).join("\n");
+            downloadBlob(csv, "stockmeta-metadata.csv", "text/csv");
+
+            let txt = "STOCKMETA METADATA EXPORT\n";
+            txt += "=========================\n\n";
+            app.results.forEach(function(r) {
+                txt += "FILE: " + r.fileName + "\n";
+                txt += "TITLE: " + r.title + "\n";
+                txt += "DESCRIPTION: " + r.description + "\n";
+                txt += "CATEGORY: " + r.category + "\n";
+                txt += "KEYWORDS: " + r.keywords.join(", ") + "\n";
+                txt += "STYLE: " + r.style + " | MOOD: " + r.mood + " | USAGE: " + r.usage + "\n";
+                txt += "---\n\n";
+            });
+            downloadBlob(txt, "stockmeta-metadata.txt", "text/plain");
+
+            app.log("Downloaded CSV + TXT files", "done");
+        }
+
+        function downloadBlob(content, filename, type) {
+            const blob = new Blob([content], { type: type });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+</html>
